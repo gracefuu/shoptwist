@@ -68,9 +68,18 @@
 		connected = true;
 		words = data.words;
 
-		items = {};
-		for (let i in data.items)
-			items[i] = { pending: false, content: data.items[i], index: i };
+		for (let i in items) {
+			if (!data.items[i])
+				delete items[i];
+		}
+
+		for (let i in data.items) {
+			if (items[i] == null) items[i] = {};
+			items[i].content = data.items[i];
+			items[i].index = i;
+			items[i].pending = false;
+		}
+
 		sortItems();
 	}
 
@@ -107,7 +116,7 @@
 
 	.loading {
 		position: absolute;
-		bottom: 0px;
+		bottom: 12px;
 		left: 0px;
 		right: 0px;
 	}
