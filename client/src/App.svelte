@@ -65,14 +65,13 @@
 	}
 
 	export function onInitialData(data) {
+		connected = true;
 		words = data.words;
 
 		items = {};
 		for (let i in data.items)
 			items[i] = { pending: false, content: data.items[i], index: i };
 		sortItems();
-
-		connected = true;
 	}
 
 	export function onDisconnect() {
@@ -107,15 +106,10 @@
 	}
 
 	.loading {
-		display: flex;
-		width: 100%;
-		height: 100%;
 		position: absolute;
-		top: 0px;
+		bottom: 0px;
 		left: 0px;
-		justify-content: center;
-		padding-top: 25vh;
-		background: rgba(0, 0, 0, 0.7);
+		right: 0px;
 	}
 </style>
 
@@ -127,8 +121,8 @@
 			<ListItem {item} on:remove={onRemove} />
 		{/each}
 	</div>
-</div>
 
-{#if !connected}
-	<div out:fade={{duration: 100}} class="loading"><LoadingIcon /></div>
-{/if}
+	{#if !connected}
+		<div out:fade={{duration: 100}} class="loading"><LoadingIcon /></div>
+	{/if}
+</div>

@@ -1,6 +1,10 @@
 import App from './App.svelte';
 import WSockMan from './ws.js';
 
+window.addEventListener("unhandledrejection", evt => {
+	alert(evt.reason);
+});
+
 let wsock = new WSockMan(
 	`${location.protocol == "http:" ? "ws:" : "wss:"}//${location.host}/`);
 
@@ -25,8 +29,10 @@ function auth(key) {
 		});
 };
 
-wsock.onconnect = () => auth(localStorage.getItem("key"));
-wsock.ondisconnect = app.onDisconnect.bind(app);
+wsock.ondisconnect = () => {
+	app.onDisconnect();
+	auth(localStorage.getItem("key"));
+};
 
 wsock.onmessage = msg => {
 	switch (msg.type) {
@@ -42,5 +48,7 @@ wsock.onmessage = msg => {
 		console.warn("Unknown message type", msg.type);
 	}
 };
+
+auth(localStorage.getItem("key"));
 
 export default app;
