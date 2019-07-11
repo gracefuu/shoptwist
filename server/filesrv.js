@@ -50,6 +50,8 @@ module.exports = function createFileServer(webroot) {
 					ctype = "application/javascript";
 				else if (path.endsWith(".css"))
 					ctype = "text/css";
+				else if (path.endsWith(".svg"))
+					ctype = "image/svg+xml";
 
 				if (ctype)
 					res.writeHead(200, { "Content-Type": ctype });
