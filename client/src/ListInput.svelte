@@ -10,8 +10,9 @@
 
 	function updateWords() {
 		wordList = [];
+		let q = inputEl.value.toLowerCase();
 		for (let content in words) {
-			if (content.includes(inputEl.value))
+			if (content.includes(q))
 				wordList.push({ content, score: words[content] });
 		}
 		wordList.sort((a, b) => b.score - a.score);
@@ -109,7 +110,7 @@
 <form on:submit|preventDefault={onSubmit} class="add">
 	<input
 		class="content" name="content" autocomplete="off"
-		on:focus={onFocus} on:blur={onBlur} on:keydown={() => window.setTimeout(updateWords, 10)} bind:this={inputEl}>
+		on:focus={onFocus} on:blur={onBlur} on:keydown={() => window.setTimeout(updateWords, 50)} bind:this={inputEl}>
 	<button class="submit" type="submit">+</button>
 	{#if !hidden}
 		<div transition:fade={{duration: 50}} class="suggestions">

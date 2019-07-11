@@ -6,15 +6,15 @@ let wsock = new WSockMan(
 
 let app = new App({ target: document.body, props: { wsock }});
 
-let key = localStorage.getItem("key");
-if (!key)
-	key = prompt("Key?");
+let key = null;
 
-function auth(k) {
-	wsock.send({ type: "init", key: k })
+function auth(key) {
+	if (!key)
+		key = prompt("Key?");
+
+	wsock.send({ type: "init", key })
 		.then(res => {
 			localStorage.setItem("key", key);
-			key = k;
 			app.onInitialData(res.data);
 		})
 		.catch(err => {
@@ -25,7 +25,7 @@ function auth(k) {
 		});
 };
 
-wsock.onconnect = () => auth(key);
+wsock.onconnect = () => auth(localStorage.getItem("key"));
 wsock.ondisconnect = app.onDisconnect.bind(app);
 
 wsock.onmessage = msg => {

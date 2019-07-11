@@ -10,6 +10,7 @@ if (!key) {
 	console.log("Environmnt variable 'KEY' not set.");
 	process.exit(1);
 }
+console.log("Using key:", key);
 
 let server = createFileServer("../client/public");
 let wss = new WebSocket.Server({ server });
