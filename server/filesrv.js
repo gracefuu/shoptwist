@@ -7,7 +7,7 @@ module.exports = function createFileServer(webroot) {
 		console.log(req.method+" "+req.url);
 		if (req.method != "HEAD" && req.method != "GET") {
 			res.writeHead(405);
-			reqsend(`Unexpected method: ${req.method}`);
+			res.end(`Unexpected method: ${req.method}`);
 			return;
 		}
 
