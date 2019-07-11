@@ -31,12 +31,12 @@
 
 	function onAdd(evt) {
 		let content = evt.detail;
-		let item = { pending: true, content, index: -pendingItems.length };
+		let item = { pending: true, content, index: pendingItems.length };
 		pendingItems.push(item);
 		sortItems();
 
 		wsock.send({ type: "item-add", content }).then(({ index }) => {
-			delete pendingItems[-item.index];
+			delete pendingItems[item.index];
 
 			item.index = index;
 			items[index] = item;
@@ -117,7 +117,7 @@
 	<ListInput {words} on:add={onAdd} />
 
 	<div class="items">
-		{#each sortedItems as item (item.index)}
+		{#each sortedItems as item (item)}
 			<ListItem {item} on:remove={onRemove} />
 		{/each}
 	</div>
