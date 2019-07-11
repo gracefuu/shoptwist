@@ -19,7 +19,7 @@
 	}
 
 	function onBlur() {
-		setTimeout(() => hidden = true, 50);
+		setTimeout(() => hidden = true, 100);
 	}
 
 	function onFocus() {
