@@ -18,10 +18,23 @@ module.exports = function createFileServer(webroot) {
 			return;
 		}
 
+		try {
+			if (fs.lstatSync(path).isDirectory()) {
+				path += "/index.html";
+			}
+		} catch {}
+
 		(function read(path) {
 			let rs = fs.createReadStream(path);
+			let headersSent = false;
 
 			rs.once("error", err => {
+				console.error(req.method+" "+req.url+": "+err.toString());
+				if (headersSent) {
+					return;
+				}
+				headersSent = true;
+
 				if (err.code == "ENOENT") {
 					res.writeHead(404);
 					res.end(`404 Not Found: ${req.url}`);
@@ -43,6 +56,10 @@ module.exports = function createFileServer(webroot) {
 			});
 
 			rs.once("open", () => {
+				if (headersSent) {
+					return;
+				}
+
 				let ctype = null;
 				if (path.endsWith(".html"))
 					ctype = "text/html";
@@ -57,6 +74,7 @@ module.exports = function createFileServer(webroot) {
 					res.writeHead(200, { "Content-Type": ctype });
 				else
 					res.writeHead(200);
+				headersSent = true;
 
 				rs.pipe(res);
 			});

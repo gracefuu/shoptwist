@@ -1,12 +1,12 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
-	export let item;
+	export let item, inited;
 
 	let dispatch = createEventDispatcher();
 	let emitRemove = () => dispatch("remove", item);
 
 	function transIn(node) {
-		if (!item.pending) return { delay: 0, duration: 0 };
+		if (!inited && !item.pending) return { delay: 0, duration: 0 };
 
 		let comp = getComputedStyle(node);
 		let height = parseInt(comp.height);

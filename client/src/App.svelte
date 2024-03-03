@@ -10,6 +10,7 @@
 	let pendingItems = [];
 	let sortedItems = [];
 	let connected = false;
+	let inited = false;
 
 	function sortItems() {
 		let pending = [];
@@ -65,7 +66,6 @@
 	}
 
 	export function onInitialData(data) {
-		connected = true;
 		words = data.words;
 
 		for (let i in items) {
@@ -81,6 +81,11 @@
 		}
 
 		sortItems();
+		connected = true;
+
+		if (!inited) {
+			setTimeout(() => inited = true, 200);
+		}
 	}
 
 	export function onDisconnect() {
@@ -115,7 +120,7 @@
 	}
 
 	.loading {
-		position: absolute;
+		position: fixed;
 		bottom: 12px;
 		left: 0px;
 		right: 0px;
@@ -127,7 +132,7 @@
 
 	<div class="items">
 		{#each sortedItems as item (item)}
-			<ListItem {item} on:remove={onRemove} />
+			<ListItem {inited} {item} on:remove={onRemove} />
 		{/each}
 	</div>
 
