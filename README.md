@@ -11,7 +11,9 @@
 - Typing "do " or "due " brings up a native date picker.
 
 ![](./screenshots/2.png)
+
 *Native date picker, Firefox 132*
 
 ![](./screenshots/3.png)
+
 *Native date picker, iOS 18 Safari*
