@@ -1,28 +1,20 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
+	export let toDisplayed;
 	export let item, inited;
 
 	let dispatch = createEventDispatcher();
 	let emitRemove = () => dispatch("remove", item);
-	let emitEdit = (evt) => dispatch("edit", item);
+	let setTarget = (node) => {
+		item.target = node;
+	};
 
-	let onClick = (evt) => {
-		item.target = evt.target;
-	  evt.target.setAttribute('contenteditable', true);
-	  evt.target.focus();
-  };
+  $: toDisplayed(item.displayedContent) === toDisplayed(item.content) || dispatch("edit", item);
 
-	let onKeyDown = (evt) => {
-	  if (evt.key === 'Enter') {
-	    evt.preventDefault();
-	    dispatch("refresh", item);
-	  }
-  };
-
-  let onFocusOut = (evt) => dispatch("refresh", item);
+  let onBlur = (evt) => item.displayedContent = toDisplayed(item.content);
+  let onKeyDown = (evt) => evt.which !== 13 || evt.target.blur();
 
 	function transIn(node) {
-		console.log('trans in', item.pending.size);
 		if (item.pending.size === 0) return { delay: 0, duration: 0 };
 
 		let comp = getComputedStyle(node);
@@ -34,15 +26,13 @@
 			duration: 200,
 			css: t => `
 				overflow: hidden;
-				height: ${t * height}px;
+				min-height: ${t * height}px;
+				max-height: ${t * height}px;
 				padding-top: ${t * paddingTop}px;`
 		};
 	}
 
 	function transOut(node) {
-		console.log('trans out', item.pending.size);
-		if (item.pending.size === 0) return { delay: 200, duration: 0 };
-
 		let comp = getComputedStyle(node);
 		let opacity = parseFloat(comp.opacity);
 		let height = parseInt(comp.height);
@@ -57,16 +47,12 @@
 			duration: 200,
 			css: t => `
 				overflow: hidden;
-				height: ${part(t, 0.3, 1) * height}px;
+				min-height: ${part(t, 0.3, 1) * height}px;
+				max-height: ${part(t, 0.3, 1) * height}px;
 				padding-top: ${part(t, 0.3, 1) * paddingTop}px;
 				transform: translateX(-${(1 - t) * 150}px);
 				opacity: ${part(t, 0, 0.7) * opacity}`
 		};
-	}
-
-	function capitalize(str) {
-		var first = str[0].toUpperCase();
-		return first + str.substring(1);
 	}
 </script>
 
@@ -120,7 +106,7 @@
 </style>
 
 <div in:transIn out:transOut class={`item ${item.pending.size > 0 ? 'pending' : ''}`}>
-	<p class="name" on:click={onClick} on:keydown={onKeyDown} on:input={emitEdit} on:focusout={onFocusOut}>{item.content}</p>
+	<p class="name" use:setTarget bind:textContent={item.displayedContent} on:blur={onBlur} on:keydown={onKeyDown} contenteditable></p>
 	{#if item.pending.size === 0}
 		<span class="ok" on:click={emitRemove}></span>
 	{/if}

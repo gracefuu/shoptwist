@@ -33,7 +33,7 @@ wsock.onmessage = msg => {
 		break;
 
 	case "item-edit":
-		app.onEditFromServer(msg.index, msg.content);
+		app.onEditFromServer(msg.index, msg.content, msg.updates);
 		break;
 
 	default:

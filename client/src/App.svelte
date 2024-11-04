@@ -5,12 +5,13 @@
 	import { fade } from 'svelte/transition';
 	export let wsock;
 
-	let words = {};
 	let items = {};
 	let pendingItems = [];
 	let sortedItems = [];
 	let connected = false;
 	let inited = false;
+
+  let toDisplayed = (content) => content === '' ? '<empty>' : content
 
 	function sortItems() {
 		let pending = [];
@@ -32,7 +33,7 @@
 
 	function onAdd(evt) {
 		let content = evt.detail;
-		let item = { pending: new Set(['add']), content, index: pendingItems.length };
+		let item = { pending: new Set(['add']), content, displayedContent: toDisplayed(content), index: pendingItems.length };
 		pendingItems.push(item);
 		sortItems();
 
@@ -43,10 +44,6 @@
 
 			item.index = index;
 			items[index] = item;
-
-			if (words[content] === undefined)
-				words[content] = 0;
-			words[content] += 1;
 
 			sortItems();
 			setTimeout(() => { item.pending.delete('add'); sortedItems = sortedItems; }, 50);
@@ -59,56 +56,50 @@
 			return;
 
 		item.pending.add('del');
+		sortedItems = sortedItems;
 
 	  console.log('del', item);
 		wsock.send({ type: "item-del", index: item.index }).then(() => {
 		  console.log('del done', item);
 			delete items[item.index];
 			sortItems();
-			sortedItems = sortedItems; 
-		});
-	}
-
-	function onEdit(evt) {
-		let id = [];
-		let item = evt.detail;
-		if (item.pending.has('del'))
-			return;
-		console.log(JSON.stringify(item.target.innerText));
-		let newContent = item.target.innerText.trim();
-		newContent = newContent === '' ? '<empty>' : newContent;
-		item.content = newContent;
-		item.pending.add(id);
-
-	  console.log('edit', item, newContent);
-		wsock.send({ type: "item-edit", index: item.index, content: newContent }).then(() => {
-		  console.log('edit done', item);
-			item.pending.delete(id);
 			sortedItems = sortedItems;
 		});
 	}
 
-	function refresh(item) {
-		if (item.target !== undefined) {
-			console.log('refreshing', item);
-			item.target.setAttribute('contenteditable', false);
-			item.target.setHTMLUnsafe('');
-			// item.target.appendChild(new Text(item.content));
-			delete item.target;
-			const index = item.index;
-			delete items[index];
-			sortItems();
-			setTimeout(() => { items[index] = item; sortItems(); }, 10);
+	function onEdit(evt) {
+		let item = evt.detail;
+		if (item.pending.has('del'))
+			return;
+		if (item.pending.has('edit')) {
+			item.pendingEdit = item.content = item.displayedContent;
+			return;
 		}
-	}
+		item.pending.add('edit');
+		const content = item.content = item.displayedContent;
+		const expectedUpdates = item.updates + 1;
 
-	export function onRefresh(evt) {
-		refresh(evt.detail);
+	  console.log('edit', item, item.displayedContent);
+		wsock.send({ type: "item-edit", index: item.index, content: item.content }).then(({ updates }) => {
+		  console.log('edit done', item);
+			item.pending.delete('edit');
+			if (item.updates < updates) {
+				if (updates === expectedUpdates) {
+					item.updates = updates;
+				} else {
+					onEditFromServer(item.index, content, updates);
+				}
+				if (item.pendingEdit !== undefined) {
+					item.displayedContent = item.pendingEdit;
+					delete item.pendingEdit;
+					onEdit({ detail: item });
+				}
+			}
+			sortedItems = sortedItems;
+		});
 	}
 
 	export function onInitialData(data) {
-		words = data.words;
-
 		for (let i in items) {
 			if (!data.items[i])
 				delete items[i];
@@ -117,7 +108,9 @@
 		for (let i in data.items) {
 			if (items[i] === undefined) items[i] = {};
 			items[i].content = data.items[i];
+			items[i].displayedContent = toDisplayed(data.items[i]);
 			items[i].index = i;
+			items[i].updates = data.updates[i] === undefined ? 0 : data.updates[i];
 			items[i].pending = new Set();
 		}
 
@@ -135,7 +128,7 @@
 
 	export function onAddFromServer(index, content) {
 	  console.log('incoming add', index, content);
-		let item = { pending: new Set(['add']), content, index };
+		let item = { pending: new Set(['add']), content, displayedContent: toDisplayed(content), index };
 		items[index] = item;
 		sortItems();
 		setTimeout(() => { item.pending.delete('add'); sortedItems = sortedItems; }, 10);
@@ -151,15 +144,20 @@
 		sortItems();
 	}
 
-	export function onEditFromServer(index, content) {
-	  console.log('incoming edit', index, content);
+	export function onEditFromServer(index, content, updates) {
+	  console.log('incoming edit', index, content, updates);
 		if (items[index] === undefined) {
 			window.location.replace('');
 		}
     let item = items[index];
-		item.content = content;
-		refresh(item);
-		sortItems();
+		if (item.updates < updates) {
+			item.updates = updates;
+			item.content = content;
+			item.displayedContent = toDisplayed(content);
+			item.target.removeAttribute('contenteditable');
+			setTimeout(() => item.target.setAttribute('contenteditable', ''), 10);
+			sortItems();
+		}
 	}
 </script>
 
@@ -186,11 +184,11 @@
 </style>
 
 <div class="container">
-	<ListInput {words} on:add={onAdd} />
+	<ListInput on:add={onAdd} />
 
 	<div class="items">
 		{#each sortedItems as item (item)}
-			<ListItem {inited} {item} on:remove={onRemove} on:edit={onEdit} on:refresh={onRefresh} />
+			<ListItem {toDisplayed} {inited} {item} on:remove={onRemove} on:edit={onEdit} />
 		{/each}
 	</div>
 

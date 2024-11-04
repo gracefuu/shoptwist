@@ -1,31 +1,9 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 	import { fade } from 'svelte/transition';
-	export let words;
 
 	let dispatch = createEventDispatcher();
 	let inputEl;
-	let hidden = true;
-	let wordList = [];
-
-	function updateWords() {
-		wordList = [];
-		let q = inputEl.value;
-		for (let content in words) {
-			if (content.includes(q))
-				wordList.push({ content, score: words[content] });
-		}
-		wordList.sort((a, b) => b.score - a.score);
-	}
-
-	function onBlur() {
-		setTimeout(() => hidden = true, 100);
-	}
-
-	function onFocus() {
-		updateWords();
-		// hidden = false;
-	}
 
 	function onSubmit(evt) {
 		let val = inputEl.value;
@@ -39,11 +17,6 @@
 	function add(content) {
 		inputEl.value = "";
 		dispatch("add", content);
-	}
-
-	function capitalize(str) {
-		var first = str[0].toUpperCase();
-		return first + str.substring(1);
 	}
 </script>
 
@@ -123,17 +96,6 @@
 </style>
 
 <form on:submit|preventDefault={onSubmit} class="add">
-	<input
-		class="content" name="content" autocomplete="off"
-		on:focus={onFocus} on:blur={onBlur} on:keydown={() => window.setTimeout(updateWords, 50)} bind:this={inputEl}>
+	<input class="content" name="content" bind:this={inputEl}>
 	<button class="submit" type="submit">+</button>
-	{#if !hidden}
-		<div transition:fade={{duration: 50}} class="suggestions">
-			{#each wordList as word}
-				<div class="suggestion" on:click={() => add(word.content)}>
-					{capitalize(word.content)}
-				</div>
-			{/each}
-		</div>
-	{/if}
 </form>

@@ -5,13 +5,6 @@ let fs = require("fs");
 let datafile = "db.json";
 let scratchfile = ".db.scratch";
 
-// let key = process.env.KEY;
-// if (!key) {
-// 	console.log("Environmnt variable 'KEY' not set.");
-// 	process.exit(1);
-// }
-// console.log("Using key:", key);
-
 function deserialize(defaults) {
 	try {
 		let json = fs.readFileSync(datafile);
@@ -26,11 +19,18 @@ function serialize(data) {
 	fs.renameSync(scratchfile, datafile);
 }
 
-let data = deserialize({
-	items: { "0": "foo", "2": "bar" },
-	words: {},
-	nextIdx: 3,
+let oldData = deserialize({
+	items: { "0": "foo", "1": "bar" },
+	updates: { "0": 0, "1": 0 },
+	nextIdx: 2,
 });
+let data = { items: {}, updates: {}, nextIdx: 0 };
+for (const index in oldData.items) {
+	if (typeof oldData.items[index] !== "string") continue;
+	const idx = data.nextIdx++;
+	data.items[idx] = oldData.items[index];
+	data.updates[idx] = oldData.updates[index];
+}
 
 let server = createFileServer("../client/public", data);
 let wss = new WebSocket.Server({ server });
@@ -54,10 +54,12 @@ function broadcast(from, obj) {
 }
 
 function onMessage(conn, msg) {
+	const delayMs = 0;
+	if (delayMs > 0) {
+		let stop = new Date().getTime();
+	  while (new Date().getTime() < stop + delayMs) {}
+  }
 	if (msg.type === "init") {
-		// if (!msg.key || msg.key !== key)
-		// 	return ack(conn, msg, { error: "Invalid key." });
-
 		ack(conn, msg, { data });
 		conn.ready = true;
 		conns[conn.id] = conn;
@@ -77,10 +79,7 @@ function onMessage(conn, msg) {
 		data.nextIdx = (data.nextIdx + 1) % 2048;
 
 		data.items[index] = content;
-
-		if (data.words[content] === null)
-			data.words[content] = 0;
-		data.words[content] += 1;
+		data.updates[index] = 0;
 
 		ack(conn, msg, { index });
 		broadcast(conn, { type: "item-add", content, index });
@@ -92,6 +91,7 @@ function onMessage(conn, msg) {
 			return ack(conn, msg, { error: "Missing index." });
 
 		delete data.items[msg.index];
+		delete data.updates[msg.index];
 		ack(conn, msg);
 		broadcast(conn, { type: "item-del", index: msg.index });
 		serialize(data);
@@ -104,8 +104,9 @@ function onMessage(conn, msg) {
 			return ack(conn, msg, { error: "Missing content." });
 
 		data.items[msg.index] = msg.content;
-		ack(conn, msg);
-		broadcast(conn, { type: "item-edit", index: msg.index, content: msg.content });
+		const updates = data.updates[msg.index]++;
+		ack(conn, msg, { updates });
+		broadcast(conn, { type: "item-edit", index: msg.index, content: msg.content, updates });
 		serialize(data);
 		break;
 	}
