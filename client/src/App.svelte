@@ -32,37 +32,78 @@
 
 	function onAdd(evt) {
 		let content = evt.detail;
-		let item = { pending: true, content, index: pendingItems.length };
+		let item = { pending: new Set(['add']), content, index: pendingItems.length };
 		pendingItems.push(item);
 		sortItems();
 
+	  console.log('add', item, content);
 		wsock.send({ type: "item-add", content }).then(({ index }) => {
+		  console.log('add done', item, content);
 			delete pendingItems[item.index];
 
 			item.index = index;
 			items[index] = item;
 
-			if (words[content] == null)
+			if (words[content] === undefined)
 				words[content] = 0;
 			words[content] += 1;
 
 			sortItems();
-			setTimeout(() => { item.pending = false; sortedItems = sortedItems; }, 50);
+			setTimeout(() => { item.pending.delete('add'); sortedItems = sortedItems; }, 50);
 		});
 	}
 
 	function onRemove(evt) {
 		let item = evt.detail;
-		if (item.pending)
+		if (item.pending.has('del'))
 			return;
 
-		item.pending = true;
-		sortedItems = sortedItems;
+		item.pending.add('del');
 
+	  console.log('del', item);
 		wsock.send({ type: "item-del", index: item.index }).then(() => {
+		  console.log('del done', item);
 			delete items[item.index];
 			sortItems();
+			sortedItems = sortedItems; 
 		});
+	}
+
+	function onEdit(evt) {
+		let id = [];
+		let item = evt.detail;
+		if (item.pending.has('del'))
+			return;
+		console.log(JSON.stringify(item.target.innerText));
+		let newContent = item.target.innerText.trim();
+		newContent = newContent === '' ? '<empty>' : newContent;
+		item.content = newContent;
+		item.pending.add(id);
+
+	  console.log('edit', item, newContent);
+		wsock.send({ type: "item-edit", index: item.index, content: newContent }).then(() => {
+		  console.log('edit done', item);
+			item.pending.delete(id);
+			sortedItems = sortedItems;
+		});
+	}
+
+	function refresh(item) {
+		if (item.target !== undefined) {
+			console.log('refreshing', item);
+			item.target.setAttribute('contenteditable', false);
+			item.target.setHTMLUnsafe('');
+			// item.target.appendChild(new Text(item.content));
+			delete item.target;
+			const index = item.index;
+			delete items[index];
+			sortItems();
+			setTimeout(() => { items[index] = item; sortItems(); }, 10);
+		}
+	}
+
+	export function onRefresh(evt) {
+		refresh(evt.detail);
 	}
 
 	export function onInitialData(data) {
@@ -74,10 +115,10 @@
 		}
 
 		for (let i in data.items) {
-			if (items[i] == null) items[i] = {};
+			if (items[i] === undefined) items[i] = {};
 			items[i].content = data.items[i];
 			items[i].index = i;
-			items[i].pending = false;
+			items[i].pending = new Set();
 		}
 
 		sortItems();
@@ -93,14 +134,31 @@
 	}
 
 	export function onAddFromServer(index, content) {
-		let item = { pending: true, content, index };
+	  console.log('incoming add', index, content);
+		let item = { pending: new Set(['add']), content, index };
 		items[index] = item;
 		sortItems();
-		setTimeout(() => { item.pending = false; sortedItems = sortedItems; }, 10);
+		setTimeout(() => { item.pending.delete('add'); sortedItems = sortedItems; }, 10);
 	}
 
 	export function onRemoveFromServer(index) {
+	  console.log('incoming remove', index);
+		if (items[index] === undefined) {
+			window.location.replace('');
+		}
+	  items[index].pending.add('del')
 		delete items[index];
+		sortItems();
+	}
+
+	export function onEditFromServer(index, content) {
+	  console.log('incoming edit', index, content);
+		if (items[index] === undefined) {
+			window.location.replace('');
+		}
+    let item = items[index];
+		item.content = content;
+		refresh(item);
 		sortItems();
 	}
 </script>
@@ -116,7 +174,7 @@
 	}
 
 	.items {
-		margin-top: 24px;
+		margin-top: 32px;
 	}
 
 	.loading {
@@ -132,7 +190,7 @@
 
 	<div class="items">
 		{#each sortedItems as item (item)}
-			<ListItem {inited} {item} on:remove={onRemove} />
+			<ListItem {inited} {item} on:remove={onRemove} on:edit={onEdit} on:refresh={onRefresh} />
 		{/each}
 	</div>
 

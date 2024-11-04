@@ -10,7 +10,7 @@
 
 	function updateWords() {
 		wordList = [];
-		let q = inputEl.value.toLowerCase();
+		let q = inputEl.value;
 		for (let content in words) {
 			if (content.includes(q))
 				wordList.push({ content, score: words[content] });
@@ -24,11 +24,11 @@
 
 	function onFocus() {
 		updateWords();
-		hidden = false;
+		// hidden = false;
 	}
 
 	function onSubmit(evt) {
-		let val = inputEl.value.toLowerCase();
+		let val = inputEl.value;
 		if (!val)
 			return;
 
@@ -38,7 +38,7 @@
 
 	function add(content) {
 		inputEl.value = "";
-		dispatch("add", content.toLowerCase());
+		dispatch("add", content);
 	}
 
 	function capitalize(str) {
@@ -49,7 +49,12 @@
 
 <style>
 	.add {
+		display: flex;
+		flex-wrap: wrap;
 		padding-top: 12px;
+		padding-left: 12px;
+		padding-right: 12px;
+		row-gap: 12px;
 	}
 	.add .content,
 	.add .submit {
@@ -59,20 +64,30 @@
 		border: 1px solid #aaa;
 		border-radius: 5px;
 		background-color: #fff;
-		height: 20px;
-		padding: 6px;
+		height: 22px;
+		padding: 10px;
 		line-height: 0px;
 	}
 	.add .content {
-		width: 78%;
+		width: 16ch;
+		flex-grow: 10000;
 		border-top-right-radius: 0px;
 		border-bottom-right-radius: 0px;
+		margin-right: -1px;
 	}
 	.add .submit {
-		width: 8%;
-		background-color: #eee;
+		width: 50px;
+		flex-grow: 1;
+		color: #000;
+		font-weight: bold;
+		background-color: #fff;
 		border-top-left-radius: 0px;
 		border-bottom-left-radius: 0px;
+		background-image: url(/favicon.png);
+		background-size: 24px 24px;
+		background-repeat: no-repeat;
+		background-position: center;
+		cursor: pointer;
 	}
 	.add .submit:hover {
 		background-color: #ddd;

@@ -10,28 +10,16 @@ let wsock = new WSockMan(
 
 let app = new App({ target: document.body, props: { wsock }});
 
-let key = null;
-
-function auth(key) {
-	if (!key)
-		key = prompt("Key?");
-
-	wsock.send({ type: "init", key })
+function auth() {
+	wsock.send({ type: "init" })
 		.then(res => {
-			localStorage.setItem("key", key);
 			app.onInitialData(res.data);
-		})
-		.catch(err => {
-			console.trace(err);
-			let k = prompt(err);
-			if (k != null)
-				auth(k);
 		});
 };
 
 wsock.ondisconnect = () => {
 	app.onDisconnect();
-	auth(localStorage.getItem("key"));
+	auth();
 };
 
 wsock.onmessage = msg => {
@@ -44,11 +32,15 @@ wsock.onmessage = msg => {
 		app.onAddFromServer(msg.index, msg.content);
 		break;
 
+	case "item-edit":
+		app.onEditFromServer(msg.index, msg.content);
+		break;
+
 	default:
 		console.warn("Unknown message type", msg.type);
 	}
 };
 
-auth(localStorage.getItem("key"));
+auth();
 
 export default app;
