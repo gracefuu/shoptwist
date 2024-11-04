@@ -11,24 +11,46 @@
 	let connected = false;
 	let inited = false;
 
-  let toDisplayed = (content) => content === '' ? '<empty>' : content
+  let toDisplayed = (content) => {
+	  content = content.trim();
+		if (content === '') content = '<empty>';
+		return content;
+	}
+
+	const dueDateRegex = /\s*due\s+(\d+)\s*/
+	const doDateRegex = /\s*do\s+(\d+)\s*/
+	function getFirstGroup(regex, str, def) {
+		const res = regex.exec(str);
+		if (res === null) return def;
+		return res[1];
+	}
+
+  function key(a) {
+		let dueDate = getFirstGroup(dueDateRegex, a.content, '99999999');
+		const doDate = getFirstGroup(doDateRegex, a.content, dueDate);
+		if (dueDate === '99999999') dueDate = doDate;
+
+		return doDate + dueDate + a.content;
+  }
+
+  function comparator(a, b) {
+		const keya = key(a);
+		const keyb = key(b);
+		return keya < keyb ? -1 : keya > keyb ? 1 : 0;
+  }
 
 	function sortItems() {
 		let pending = [];
 		for (let i in pendingItems)
 			pending.push(pendingItems[i]);
-		pending.sort((a, b) => b.index - a.index);
+		pending.sort(comparator);
 
 		let rest = [];
 		for (let i in items)
 			rest.push(items[i]);
-		rest.sort((a, b) => b.index - a.index);
+		rest.sort(comparator);
 
-		sortedItems = [];
-		for (let item of pending)
-			sortedItems.push(item);
-		for (let item of rest)
-			sortedItems.push(item);
+		sortedItems = [...pending, ...rest];
 	}
 
 	function onAdd(evt) {
@@ -95,8 +117,14 @@
 					onEdit({ detail: item });
 				}
 			}
+			// don't sort items when things are still editing
+			// sortItems();
 			sortedItems = sortedItems;
 		});
+	}
+
+	function onEditDone(evt) {
+		sortItems();
 	}
 
 	export function onInitialData(data) {
@@ -181,6 +209,10 @@
 		left: 0px;
 		right: 0px;
 	}
+
+	.spacer {
+		height: 200px;
+	}
 </style>
 
 <div class="container">
@@ -188,11 +220,13 @@
 
 	<div class="items">
 		{#each sortedItems as item (item)}
-			<ListItem {toDisplayed} {inited} {item} on:remove={onRemove} on:edit={onEdit} />
+			<ListItem {toDisplayed} {inited} {item} on:remove={onRemove} on:edit={onEdit} on:editdone={onEditDone} />
 		{/each}
 	</div>
 
 	{#if !connected}
 		<div out:fade={{duration: 100}} class="loading"><LoadingIcon /></div>
 	{/if}
+</div>
+<div class="spacer">
 </div>
