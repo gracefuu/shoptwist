@@ -26,9 +26,9 @@
 	}
 
   function key(a) {
-		let dueDate = getFirstGroup(dueDateRegex, a.content, '99999999');
+		let dueDate = getFirstGroup(dueDateRegex, a.content, '9999-99-99');
 		const doDate = getFirstGroup(doDateRegex, a.content, dueDate);
-		if (dueDate === '99999999') dueDate = doDate;
+		if (dueDate === '9999-99-99') dueDate = doDate;
 
 		return doDate + dueDate + a.content;
   }

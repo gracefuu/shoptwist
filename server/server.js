@@ -21,7 +21,6 @@ function serialize(data) {
 
 let oldData = deserialize({
 	items: { "0": "foo", "1": "bar" },
-	updates: { "0": 0, "1": 0 },
 	nextIdx: 2,
 });
 let data = { items: {}, updates: {}, nextIdx: 0 };
@@ -29,7 +28,7 @@ for (const index in oldData.items) {
 	if (typeof oldData.items[index] !== "string") continue;
 	const idx = data.nextIdx++;
 	data.items[idx] = oldData.items[index];
-	data.updates[idx] = oldData.updates[index];
+	data.updates[idx] = 0;
 }
 
 let server = createFileServer("../client/public", data);
