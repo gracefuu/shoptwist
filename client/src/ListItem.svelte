@@ -3,54 +3,43 @@
 	export let toDisplayed;
 	export let item, inited;
 
-	let dispatch = createEventDispatcher();
-	let emitRemove = () => dispatch("remove", item);
+	let dateEl;
+	let date;
+	let editing = false;
+	let pickerOpen = false;
+	let wasOpen = false;
 
-  $: toDisplayed(item.displayedContent) === toDisplayed(item.content) || dispatch("edit", item);
+	let selected;
 
-	let showDates;
-	$: showDates = item.displayedContent.match(/(due|do)\s+$/) !== null && document.activeElement === item.target;
+	function formatDate(date) {
+		return String(date.getFullYear()).padStart(4, 0) + '-' + String(date.getMonth() + 1).padStart(2, 0) + '-' + String(date.getDate()).padStart(2, 0);
+	}
 
-  let onBlur = (evt) => { item.displayedContent = toDisplayed(item.content); dispatch("editdone", item); };
-  let onKeyDown = (evt) => evt.which !== 13 || item.target.blur();
-
-	function addDate(evt) {
-		const today = new Date();
-		const add = (n) => today.setDate(today.getDate() + n);
-		const addToDay = (targetDay) => {
-			const startDay = today.getDay();
-			const daysToAdd = (targetDay + 14 - startDay - 1) % 7 + 1;
-			add(daysToAdd);
-		};
-		switch (evt.target.textContent) {
-			case '0d': add(0); break;
-			case '1d': add(1); break;
-			case '2d': add(2); break;
-			case '1w': add(7); break;
-			case '2w': add(14); break;
-			case 'Sun': addToDay(0); break;
-			case 'Mon': addToDay(1); break;
-			case 'Tue': addToDay(2); break;
-			case 'Wed': addToDay(3); break;
-			case 'Thu': addToDay(4); break;
-			case 'Fri': addToDay(5); break;
-			case 'Sat': addToDay(6); break;
-		}
-		item.displayedContent += ' ';
-		item.displayedContent += String(today.getFullYear()).padStart(4, 0);
-		item.displayedContent += String(today.getMonth() + 1).padStart(2, 0);
-		item.displayedContent += String(today.getDate()).padStart(2, 0);
-
-		item.target.focus();
+	function selectAndCursorToEnd(el) {
+		el.focus();
 		setTimeout(() => {
 	    const range = document.createRange();//Create a range (a range is a like the selection but invisible)
-	    range.selectNodeContents(item.target);//Select the entire contents of the element with the range
+	    range.selectNodeContents(el);//Select the entire contents of the element with the range
 	    range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
 	    const selection = window.getSelection();//get the selection object (allows you to change selection)
 	    selection.removeAllRanges();//remove any selections already made
 	    selection.addRange(range);//make the range you have just created the visible selection
     }, 0);
 	}
+
+	let dispatch = createEventDispatcher();
+	let emitRemove = () => dispatch("remove", item);
+
+  $: toDisplayed(item.displayedContent) === toDisplayed(item.content) || dispatch("edit", item);
+
+	let showDates;
+	$: showDates = item.displayedContent.match(/(due|do)\s+$/) !== null && (document.activeElement === item.target || document.activeElement === dateEl || pickerOpen);
+	$: showDates && setTimeout(() => dateEl.focus(), 10);
+
+  let onBlur = (evt) => { item.displayedContent = toDisplayed(item.content); dispatch("editdone", item); };
+  $: (editing + pickerOpen === 0) && wasOpen && (wasOpen = false, item.displayedContent = toDisplayed(item.content), dispatch("editdone", item));
+  $: !wasOpen && (editing + pickerOpen > 0) && (wasOpen = true);
+  let onKeyDown = (evt) => evt.which !== 13 || item.target.blur();
 
 	function transIn(node) {
 		if (item.pending.size === 0) return { delay: 0, duration: 0 };
@@ -147,94 +136,18 @@
 		background-color: #ddd;
 	}
 
-	.add-dates {
-		margin-top: calc(12px - 16px);
-		margin-bottom: 0;
-		padding: 0 12px;
-		width: calc(100% - 76px);
-		display: flex;
-		flex-wrap: wrap;
-		max-height: 100px;
-		gap: 12px;
-	  transition: all 0.2s ease-out;
-	}
-	.add-dates.hide {
-		visibility: collapse;
-		margin-top: 0;
-		margin-bottom: 0;
-		min-height: 0;
-		gap: 0 12px;
+	.date-input {
+		position: absolute;
 		opacity: 0;
-		max-height: 0;
-	}
-	.add-dates ~ .add-dates {
-		margin-top: 12px;
-		margin-bottom: 12px;
-	}
-	.add-dates ~ .add-dates.hide {
-		margin-top: 0;
-		margin-bottom: 0;
-	}
-
-	.add-dates .date {
-		flex-basis: 0;
-		flex-grow: 1;
 		height: 44px;
-		min-width: 50px;
-		padding: 0;
-	  transition: all 0.2s ease-out;
-
-		background: #eee;
-		color: #000;
-		border: 0;
-		border-radius: 88px;
-		font-family: sans-serif;
-		font-size: 0.85rem;
-	}
-	.add-dates .date:hover {
-		background: #ddd;
-	}
-
-	.add-dates .dates-satsun {
-		flex-basis: 20px;
-		flex-grow: 2;
-		height: 44px;
-		min-width: 112px;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 12px;
-	}
-	.add-dates .dates-satsun .date {
-		flex-basis: 0;
-		flex-grow: 2;
-		height: 44px;
-		min-width: 50px;
 	}
 </style>
 
 <div in:transIn out:transOut class={`item ${item.pending.size > 0 ? 'pending' : ''}`}>
-	<form>
-	<p class="name" bind:this={item.target} bind:textContent={item.displayedContent} on:blur={onBlur} on:keydown={onKeyDown} contenteditable></p>
-	<div class={`add-dates ${showDates ? '' : 'hide'}`}>
-		<button class="date" type="button" on:click={addDate}>0d</button>
-		<button class="date" type="button" on:click={addDate}>1d</button>
-		<button class="date" type="button" on:click={addDate}>2d</button>
-		<button class="date" type="button" on:click={addDate}>1w</button>
-		<button class="date" type="button" on:click={addDate}>2w</button>
-	</div>
-	<div class={`add-dates ${showDates ? '' : 'hide'}`}>
-		<button class="date" type="button" on:click={addDate}>Mon</button>
-		<button class="date" type="button" on:click={addDate}>Tue</button>
-		<button class="date" type="button" on:click={addDate}>Wed</button>
-		<button class="date" type="button" on:click={addDate}>Thu</button>
-		<button class="date" type="button" on:click={addDate}>Fri</button>
-		<div class="dates-satsun">
-			<button class="date" type="button" on:click={addDate}>Sat</button>
-			<button class="date" type="button" on:click={addDate}>Sun</button>
-		</div>
-	</div>
-	</form>
-
+	<p class="name" bind:this={item.target} bind:textContent={item.displayedContent} on:focus={() => editing = true} on:blur={() => editing = false} on:keydown={onKeyDown} contenteditable></p>
+	{#if showDates}
+		<input class="date-input" name="date-input" type="date" bind:value={date} bind:this={dateEl} on:focus={() => { pickerOpen = true; date = formatDate(new Date()); try { dateEl.showPicker(); } catch (e) {} } } on:blur={() => pickerOpen = false} on:change={() => { item.displayedContent += date; selectAndCursorToEnd(item.target); }}>
+	{/if}
 	{#if item.pending.size === 0}
 		<span class="ok" on:click={emitRemove}></span>
 	{/if}

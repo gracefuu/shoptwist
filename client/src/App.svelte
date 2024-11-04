@@ -17,8 +17,8 @@
 		return content;
 	}
 
-	const dueDateRegex = /\s*due\s+(\d+)\s*/
-	const doDateRegex = /\s*do\s+(\d+)\s*/
+	const dueDateRegex = /\s*due\s+(\d{4}-\d\d-\d\d)\s*/
+	const doDateRegex = /\s*do\s+(\d{4}-\d\d-\d\d)\s*/
 	function getFirstGroup(regex, str, def) {
 		const res = regex.exec(str);
 		if (res === null) return def;
@@ -196,7 +196,6 @@
 		text-align: center;
 		width: 100%;
 		max-width: 500px;
-		height: 100%;
 	}
 
 	.items {

@@ -4,10 +4,17 @@
 
 	let dispatch = createEventDispatcher();
 	let inputEl;
+	let dateEl;
 	let input = '';
+	let date = '';
 
 	let showDates;
 	$: showDates = input.match(/(due|do)\s+$/) !== null;
+	$: showDates && setTimeout(() => dateEl.focus(), 0);
+
+	function formatDate(date) {
+		return String(date.getFullYear()).padStart(4, 0) + '-' + String(date.getMonth() + 1).padStart(2, 0) + '-' + String(date.getDate()).padStart(2, 0);
+	}
 
 	function onSubmit(evt) {
 		if (!input)
@@ -15,36 +22,6 @@
 
 		dispatch("add", input);
 		input = "";
-	}
-
-	function addDate(evt) {
-		if (!showDates) return;
-		const today = new Date();
-		const add = (n) => today.setDate(today.getDate() + n);
-		const addToDay = (targetDay) => {
-			const startDay = today.getDay();
-			const daysToAdd = (targetDay + 14 - startDay - 1) % 7 + 1;
-			add(daysToAdd);
-		};
-		switch (evt.target.textContent) {
-			case '0d': add(0); break;
-			case '1d': add(1); break;
-			case '2d': add(2); break;
-			case '1w': add(7); break;
-			case '2w': add(14); break;
-			case 'Sun': addToDay(0); break;
-			case 'Mon': addToDay(1); break;
-			case 'Tue': addToDay(2); break;
-			case 'Wed': addToDay(3); break;
-			case 'Thu': addToDay(4); break;
-			case 'Fri': addToDay(5); break;
-			case 'Sat': addToDay(6); break;
-		}
-		input += String(today.getFullYear()).padStart(4, 0);
-		input += String(today.getMonth() + 1).padStart(2, 0);
-		input += String(today.getDate()).padStart(2, 0);
-
-		inputEl.focus();
 	}
 </script>
 
@@ -125,81 +102,17 @@
 		overflow: hidden;
 	}
 
-	.add-dates {
-		margin-top: 12px;
-		padding: 0 12px;
-		width: 100%;
-		display: flex;
-		flex-wrap: wrap;
-		min-height: 44px;
-		gap: 12px;
-	  transition: all 0.2s ease-out;
-	}
-	.add-dates.hide {
-		visibility: collapse;
-		margin-top: 0;
-		min-height: 0;
-		gap: 0 12px;
+	.date-input {
+		position: absolute;
 		opacity: 0;
-		height: 0;
-	}
-
-	.add-dates .date {
-		flex-basis: 0;
-		flex-grow: 1;
 		height: 44px;
-		min-width: 50px;
-		padding: 0;
-	  transition: all 0.2s ease-out;
-
-		background: #eee;
-		color: #000;
-		border: 0;
-		border-radius: 88px;
-		font-family: sans-serif;
-		font-size: 0.85rem;
-	}
-	.add-dates .date:hover {
-		background: #ddd;
-	}
-
-	.add-dates .dates-satsun {
-		flex-basis: 20px;
-		flex-grow: 2;
-		height: 44px;
-		min-width: 112px;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 12px;
-	}
-	.add-dates .dates-satsun .date {
-		flex-basis: 0;
-		flex-grow: 2;
-		height: 44px;
-		min-width: 50px;
 	}
 </style>
 
 <form on:submit|preventDefault={onSubmit} class="add">
 	<input class="content" name="content" autocomplete="off" bind:value={input} bind:this={inputEl}>
+	{#if showDates}
+		<input class="date-input" name="date-input" type="date" bind:value={date} bind:this={dateEl} on:focus={() => { date = formatDate(new Date()); try { dateEl.showPicker(); } catch (e) {} } } on:change={() => { input += date; inputEl.focus(); }}>
+	{/if}
 	<button class="submit" type="submit">+</button>
 </form>
-
-<div class={`add-dates ${showDates ? '' : 'hide'}`}>
-	<button class="date" type="button" on:click={addDate}>0d</button>
-	<button class="date" type="button" on:click={addDate}>1d</button>
-	<button class="date" type="button" on:click={addDate}>2d</button>
-	<button class="date" type="button" on:click={addDate}>1w</button>
-	<button class="date" type="button" on:click={addDate}>2w</button>
-</div>
-<div class={`add-dates ${showDates ? '' : 'hide'}`}>
-	<button class="date" type="button" on:click={addDate}>Mon</button>
-	<button class="date" type="button" on:click={addDate}>Tue</button>
-	<button class="date" type="button" on:click={addDate}>Wed</button>
-	<button class="date" type="button" on:click={addDate}>Thu</button>
-	<button class="date" type="button" on:click={addDate}>Fri</button>
-	<div class="dates-satsun">
-		<button class="date" type="button" on:click={addDate}>Sat</button>
-		<button class="date" type="button" on:click={addDate}>Sun</button>
-	</div>
-</div>
