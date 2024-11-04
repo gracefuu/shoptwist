@@ -13,6 +13,6 @@
     "ws": "^7.0.1"
   },
   "devDependencies": {
-    "dev-refresh": "file:../../../../dev/dev-refresh"
+    "dev-refresh": "^1.2.1"
   }
 }
